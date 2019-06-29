@@ -2,16 +2,20 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func rewriteBody(resp *http.Response) (err error) {
-	b, err := ioutil.ReadAll(resp.Body)
+	reader, _ := gzip.NewReader(resp.Body)
+	b, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return err
 	}
@@ -19,7 +23,12 @@ func rewriteBody(resp *http.Response) (err error) {
 	if err != nil {
 		return err
 	}
-	b = bytes.Replace(b, []byte("jxnu.edu"), []byte("xxx"), -1) // replace html
+	cType := resp.Header.Get("Content-Type")
+	if strings.HasPrefix(cType, "text") {
+		resp.Header.Del("Content-Encoding")
+		fmt.Println(true)
+		b = bytes.Replace(b, []byte("test"), []byte("d"), -1) // replace html
+	}
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
 	resp.ContentLength = int64(len(b))
@@ -28,18 +37,19 @@ func rewriteBody(resp *http.Response) (err error) {
 }
 
 func main() {
-	rpURL, err := url.Parse(os.Args[1])
+	rpURL, err := url.Parse("https://" + os.Args[1])
 	if err != nil {
 		panic(err)
 	}
 	proxy := httputil.NewSingleHostReverseProxy(rpURL)
+	proxy.ModifyResponse = rewriteBody
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) {
 		director(r)
-		r.Host = "www.baidu.com"
+		// r.Host = "www.startpage.com"
+		r.Host = os.Args[1]
 	}
-	proxy.ModifyResponse = rewriteBody
 
 	http.Handle("/", proxy)
-	http.ListenAndServe(":5600", nil)
+	http.ListenAndServe(":3000", nil)
 }
