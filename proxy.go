@@ -28,8 +28,16 @@ func rewriteBody(resp *http.Response) (err error) {
 }
 
 func main() {
-	target, _ := url.Parse(os.Args[1])
-	proxy := httputil.NewSingleHostReverseProxy(target)
+	rpURL, err := url.Parse(os.Args[1])
+	if err != nil {
+		panic(err)
+	}
+	proxy := httputil.NewSingleHostReverseProxy(rpURL)
+	director := proxy.Director
+	proxy.Director = func(r *http.Request) {
+		director(r)
+		r.Host = "www.baidu.com"
+	}
 	proxy.ModifyResponse = rewriteBody
 
 	http.Handle("/", proxy)
