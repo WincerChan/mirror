@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,11 +12,13 @@ import (
 	"strings"
 )
 
-var host = "s2-us2.startpage.com"
+// var host = "s2-us2.startpage.com"
 
-var ownhost = "mirror.loerfy.now.sh"
+// var Config.Host.Self = "mirror.loerfy.now.sh"
 
-// var ownhost = "127.0.0.1:3000"
+var Config *Yaml
+var initial bool
+var protocal string
 
 func hasGziped(coding string) bool {
 	return strings.HasPrefix(coding, "gz")
@@ -47,12 +50,13 @@ func rewriteBody(resp *http.Response) (err error) {
 		resp.Header.Del("Content-Encoding")
 	}
 	if isTextType(cType) {
-		b = bytes.Replace(b, []byte("www.startpage.com"), []byte(host), -1) // replace html
-		b = bytes.Replace(b, []byte(host), []byte(ownhost), -1)             // replace html
+		for _, url := range Config.ReplacedURLs {
+			b = bytes.ReplaceAll(b, []byte(url.Old), []byte(url.New))
+		}
 	}
 	if StatusCode == 302 || StatusCode == 301 {
 		lo := resp.Header.Get("location")
-		newLo := strings.ReplaceAll(lo, "www.startpage.com", ownhost)
+		newLo := strings.ReplaceAll(lo, "www.startpage.com", Config.Host.Self)
 		resp.Header.Set("Location", newLo)
 		cookie := strings.ReplaceAll(resp.Header.Get("set-cookie"), "domain=startpage.com;", "")
 		resp.Header.Set("Set-Cookie", cookie)
@@ -65,7 +69,11 @@ func rewriteBody(resp *http.Response) (err error) {
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	rpURL, err := url.Parse("https://" + host)
+	if !initial {
+		loadConfig()
+		initial = true
+	}
+	rpURL, err := url.Parse(protocal + Config.Host.Proxy)
 	if err != nil {
 		panic(err)
 	}
@@ -74,14 +82,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) {
 		director(r)
-		r.Host = host
+		r.Host = Config.Host.Proxy
 	}
 	proxy.ServeHTTP(w, r)
 }
 
-// func main() {
-// 	http.HandleFunc("/", Handler)
-// 	// http.ListenAndServe(":3000", nil)
-// 	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
-// 	log.Println("Listening in :3000")
-// }
+func main() {
+	http.HandleFunc("/", Handler)
+	// http.ListenAndServe(":3000", nil)
+	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
+	log.Println("Listening in :3000")
+}
