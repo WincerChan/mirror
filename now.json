@@ -6,10 +6,15 @@
         "icn1",
         "sin1"
     ],
+    "build": {
+        "env": {
+            "GO111MODULE": "on"
+        }
+    },
     "builds": [
         {
-            "src": "*.go",
-            "use": "@now/go"
+            "src": "go.mod",
+            "use": "@torbensky/go-mod"
         }
     ],
     "routes": [

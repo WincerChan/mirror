@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"log"
+	"net/http"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -34,4 +35,8 @@ func loadConfig() {
 		protocal = "http://"
 	}
 	log.Println("conf", Config.ReplacedURLs)
+}
+
+func tool(w http.ResponseWriter, r *http.Request) {
+
 }

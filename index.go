@@ -39,13 +39,18 @@ func replaceRedirect(header http.Header) string {
 	return location
 }
 
-func replaceCookie(cookie string) string {
+func removeCookie(cookie string) string {
 	domain := regexp.MustCompile(`(domain=.*?;)`)
 	newCookit := domain.ReplaceAllLiteralString(cookie, "")
 	return newCookit
 }
 
 func rewriteBody(resp *http.Response) (err error) {
+	if nil != resp {
+		defer resp.Body.Close()
+	}
+	checkErr(err)
+
 	var content []byte
 	cType := resp.Header.Get("Content-Type")
 	cEncoding := resp.Header.Get("Content-Encoding")
@@ -67,13 +72,13 @@ func rewriteBody(resp *http.Response) (err error) {
 		resp.Header.Set("Location", replaceRedirect(resp.Header))
 	}
 	if cookie != "" {
-		resp.Header.Set("Set-Cookie", replaceCookie(cookie))
+		resp.Header.Set("Set-Cookie", removeCookie(cookie))
 	}
 
 	resp.Body = ioutil.NopCloser(bytes.NewReader(content))
 	resp.ContentLength = int64(len(content))
 	resp.Header.Set("Content-Length", strconv.Itoa(len(content)))
-	defer resp.Body.Close()
+
 	return nil
 }
 
