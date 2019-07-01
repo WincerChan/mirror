@@ -1,9 +1,21 @@
 {
     "version": 2,
+    "name": "mirror",
+    "regions": [
+        "hnd1",
+        "icn1",
+        "sin1"
+    ],
     "builds": [
         {
             "src": "*.go",
-            "use": "@now.go"
+            "use": "@now/go"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "index.go"
         }
     ]
 }

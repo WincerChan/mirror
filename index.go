@@ -3,19 +3,39 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 )
 
+var host = "s2-us2.startpage.com"
+
+var ownhost = "mirror.loerfy.now.sh"
+
+// var ownhost = "127.0.0.1:3000"
+
+func hasGziped(coding string) bool {
+	return strings.HasPrefix(coding, "gz")
+}
+
+func isTextType(typeName string) bool {
+	return strings.HasPrefix(typeName, "text") || strings.HasPrefix(typeName, "app")
+}
+
 func rewriteBody(resp *http.Response) (err error) {
-	reader, _ := gzip.NewReader(resp.Body)
-	b, err := ioutil.ReadAll(reader)
+	cType := resp.Header.Get("Content-Type")
+	cEncoding := resp.Header.Get("Content-Encoding")
+	StatusCode := resp.StatusCode
+	var b []byte
+	if hasGziped(cEncoding) {
+		reader, _ := gzip.NewReader(resp.Body)
+		b, err = ioutil.ReadAll(reader)
+	} else {
+		b, err = ioutil.ReadAll(resp.Body)
+	}
 	if err != nil {
 		return err
 	}
@@ -23,11 +43,19 @@ func rewriteBody(resp *http.Response) (err error) {
 	if err != nil {
 		return err
 	}
-	cType := resp.Header.Get("Content-Type")
-	if strings.HasPrefix(cType, "text") {
+	if hasGziped(cEncoding) {
 		resp.Header.Del("Content-Encoding")
-		fmt.Println(true)
-		b = bytes.Replace(b, []byte("test"), []byte("d"), -1) // replace html
+	}
+	if isTextType(cType) {
+		b = bytes.Replace(b, []byte("www.startpage.com"), []byte(host), -1) // replace html
+		b = bytes.Replace(b, []byte(host), []byte(ownhost), -1)             // replace html
+	}
+	if StatusCode == 302 || StatusCode == 301 {
+		lo := resp.Header.Get("location")
+		newLo := strings.ReplaceAll(lo, "www.startpage.com", ownhost)
+		resp.Header.Set("Location", newLo)
+		cookie := strings.ReplaceAll(resp.Header.Get("set-cookie"), "domain=startpage.com;", "")
+		resp.Header.Set("Set-Cookie", cookie)
 	}
 	body := ioutil.NopCloser(bytes.NewReader(b))
 	resp.Body = body
@@ -36,8 +64,8 @@ func rewriteBody(resp *http.Response) (err error) {
 	return nil
 }
 
-func main() {
-	rpURL, err := url.Parse("https://" + os.Args[1])
+func Handler(w http.ResponseWriter, r *http.Request) {
+	rpURL, err := url.Parse("https://" + host)
 	if err != nil {
 		panic(err)
 	}
@@ -46,10 +74,14 @@ func main() {
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) {
 		director(r)
-		// r.Host = "www.startpage.com"
-		r.Host = os.Args[1]
+		r.Host = host
 	}
-
-	http.Handle("/", proxy)
-	http.ListenAndServe(":3000", nil)
+	proxy.ServeHTTP(w, r)
 }
+
+// func main() {
+// 	http.HandleFunc("/", Handler)
+// 	// http.ListenAndServe(":3000", nil)
+// 	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
+// 	log.Println("Listening in :3000")
+// }
