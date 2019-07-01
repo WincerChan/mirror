@@ -2,11 +2,11 @@ enable_ssl: True
 handle_cookie: True
 
 host:
-  self: mirror.loerfy.now.sh
+  self: 127.0.0.1:3000
   proxy: s2-us2.startpage.com
 
 replaced_urls:
   - old: www.startpage.com
     new: s2-us2.startpage.com
   - old: s2-us2.startpage.com
-    new: mirror.loerfy.now.sh
+    new: 127.0.0.1:3000
