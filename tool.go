@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"log"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -12,6 +13,15 @@ func checkErr(err error) {
 		panic(err)
 	}
 }
+func hasGziped(coding string) bool {
+	return strings.HasPrefix(coding, "gz")
+}
+
+func isTextType(typeName string) bool {
+	return strings.HasPrefix(typeName, "text") ||
+		strings.HasPrefix(typeName, "appli")
+}
+
 func loadConfig() {
 	Config = new(Yaml)
 	yamlFile, err := ioutil.ReadFile("config.yaml")

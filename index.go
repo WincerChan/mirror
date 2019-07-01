@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -20,51 +21,59 @@ var Config *Yaml
 var initial bool
 var protocal string
 
-func hasGziped(coding string) bool {
-	return strings.HasPrefix(coding, "gz")
+func replaceText(text []byte) []byte {
+	for _, url := range Config.ReplacedURLs {
+		text = bytes.ReplaceAll(text,
+			[]byte(url.Old), []byte(url.New))
+	}
+	return text
 }
 
-func isTextType(typeName string) bool {
-	return strings.HasPrefix(typeName, "text") || strings.HasPrefix(typeName, "app")
+func replaceRedirect(header http.Header) string {
+	domain := regexp.MustCompile(`://(.*?)/`)
+	location := header.Get("Location")
+	host := domain.FindStringSubmatch(location)[1]
+	if host != Config.Host.Self {
+		return strings.ReplaceAll(location, host, Config.Host.Self)
+	}
+	return location
+}
+
+func replaceCookie(cookie string) string {
+	domain := regexp.MustCompile(`(domain=.*?;)`)
+	newCookit := domain.ReplaceAllLiteralString(cookie, "")
+	return newCookit
 }
 
 func rewriteBody(resp *http.Response) (err error) {
+	var content []byte
 	cType := resp.Header.Get("Content-Type")
 	cEncoding := resp.Header.Get("Content-Encoding")
 	StatusCode := resp.StatusCode
-	var b []byte
-	if hasGziped(cEncoding) {
-		reader, _ := gzip.NewReader(resp.Body)
-		b, err = ioutil.ReadAll(reader)
-	} else {
-		b, err = ioutil.ReadAll(resp.Body)
-	}
-	if err != nil {
-		return err
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		return err
-	}
+	cookie := resp.Header.Get("Set-Cookie")
+
 	if hasGziped(cEncoding) {
 		resp.Header.Del("Content-Encoding")
+		reader, _ := gzip.NewReader(resp.Body)
+		content, err = ioutil.ReadAll(reader)
+	} else {
+		content, err = ioutil.ReadAll(resp.Body)
 	}
+	checkErr(err)
 	if isTextType(cType) {
-		for _, url := range Config.ReplacedURLs {
-			b = bytes.ReplaceAll(b, []byte(url.Old), []byte(url.New))
-		}
+		content = replaceText(content)
 	}
 	if StatusCode == 302 || StatusCode == 301 {
-		lo := resp.Header.Get("location")
-		newLo := strings.ReplaceAll(lo, "www.startpage.com", Config.Host.Self)
-		resp.Header.Set("Location", newLo)
-		cookie := strings.ReplaceAll(resp.Header.Get("set-cookie"), "domain=startpage.com;", "")
-		resp.Header.Set("Set-Cookie", cookie)
+		resp.Header.Set("Location", replaceRedirect(resp.Header))
 	}
-	body := ioutil.NopCloser(bytes.NewReader(b))
-	resp.Body = body
-	resp.ContentLength = int64(len(b))
-	resp.Header.Set("Content-Length", strconv.Itoa(len(b)))
+	if cookie != "" {
+		resp.Header.Set("Set-Cookie", replaceCookie(cookie))
+	}
+
+	resp.Body = ioutil.NopCloser(bytes.NewReader(content))
+	resp.ContentLength = int64(len(content))
+	resp.Header.Set("Content-Length", strconv.Itoa(len(content)))
+	defer resp.Body.Close()
 	return nil
 }
 
@@ -74,9 +83,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		initial = true
 	}
 	rpURL, err := url.Parse(protocal + Config.Host.Proxy)
-	if err != nil {
-		panic(err)
-	}
+	checkErr(err)
 	proxy := httputil.NewSingleHostReverseProxy(rpURL)
 	proxy.ModifyResponse = rewriteBody
 	director := proxy.Director
