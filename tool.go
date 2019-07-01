@@ -23,5 +23,5 @@ func loadConfig() {
 	} else {
 		protocal = "http://"
 	}
-	log.Println("conf", Config.ReplacedStrings)
+	log.Println("conf", Config.ReplacedURLs)
 }

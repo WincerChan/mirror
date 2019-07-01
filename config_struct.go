@@ -10,7 +10,7 @@ type Yaml struct {
 		Self  string `yaml:"self"`
 		Proxy string `yaml:"proxy"`
 	}
-	ReplacedStrings []Replaced `yaml:"replaced_strings"`
-	EnableSSL bool `yaml:"enable_ssl"`
-	HandleCookie bool `yaml:"handle_cookie"`
+	ReplacedURLs []Replaced `yaml:"replaced_urls"`
+	EnableSSL    bool       `yaml:"enable_ssl"`
+	HandleCookie bool       `yaml:"handle_cookie"`
 }
