@@ -1,10 +1,11 @@
-package main
+package mirror
 
 import (
 	"bytes"
 	"compress/gzip"
 	"io/ioutil"
-	"log"
+	C "mirror/config"
+	T "mirror/tool"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -13,16 +14,10 @@ import (
 	"strings"
 )
 
-// var host = "s2-us2.startpage.com"
-
-// var Config.Host.Self = "mirror.loerfy.now.sh"
-
-var Config *Yaml
 var initial bool
-var protocal string
 
 func replaceText(text []byte) []byte {
-	for _, url := range Config.ReplacedURLs {
+	for _, url := range C.Config.ReplacedURLs {
 		text = bytes.ReplaceAll(text,
 			[]byte(url.Old), []byte(url.New))
 	}
@@ -33,8 +28,8 @@ func replaceRedirect(header http.Header) string {
 	domain := regexp.MustCompile(`://(.*?)/`)
 	location := header.Get("Location")
 	host := domain.FindStringSubmatch(location)[1]
-	if host != Config.Host.Self {
-		return strings.ReplaceAll(location, host, Config.Host.Self)
+	if host != C.Config.Host.Self {
+		return strings.ReplaceAll(location, host, C.Config.Host.Self)
 	}
 	return location
 }
@@ -49,7 +44,7 @@ func rewriteBody(resp *http.Response) (err error) {
 	if nil != resp {
 		defer resp.Body.Close()
 	}
-	checkErr(err)
+	T.CheckErr(err)
 
 	var content []byte
 	cType := resp.Header.Get("Content-Type")
@@ -57,15 +52,15 @@ func rewriteBody(resp *http.Response) (err error) {
 	StatusCode := resp.StatusCode
 	cookie := resp.Header.Get("Set-Cookie")
 
-	if hasGziped(cEncoding) {
+	if T.HasGziped(cEncoding) {
 		resp.Header.Del("Content-Encoding")
 		reader, _ := gzip.NewReader(resp.Body)
 		content, err = ioutil.ReadAll(reader)
 	} else {
 		content, err = ioutil.ReadAll(resp.Body)
 	}
-	checkErr(err)
-	if isTextType(cType) {
+	T.CheckErr(err)
+	if T.IsTextType(cType) {
 		content = replaceText(content)
 	}
 	if StatusCode == 302 || StatusCode == 301 {
@@ -84,24 +79,24 @@ func rewriteBody(resp *http.Response) (err error) {
 
 func Handler(w http.ResponseWriter, r *http.Request) {
 	if !initial {
-		loadConfig()
+		C.LoadConfig()
 		initial = true
 	}
-	rpURL, err := url.Parse(protocal + Config.Host.Proxy)
-	checkErr(err)
+	rpURL, err := url.Parse(C.Protocal + C.Config.Host.Proxy)
+	T.CheckErr(err)
 	proxy := httputil.NewSingleHostReverseProxy(rpURL)
 	proxy.ModifyResponse = rewriteBody
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) {
 		director(r)
-		r.Host = Config.Host.Proxy
+		r.Host = C.Config.Host.Proxy
 	}
 	proxy.ServeHTTP(w, r)
 }
 
-func main() {
-	http.HandleFunc("/", Handler)
-	// http.ListenAndServe(":3000", nil)
-	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
-	log.Println("Listening in :3000")
-}
+// func main() {
+// 	http.HandleFunc("/", Handler)
+// 	// http.ListenAndServe(":3000", nil)
+// 	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
+// 	log.Println("Listening in :3000")
+// }
