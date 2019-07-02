@@ -3,83 +3,21 @@ package mirror
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io/ioutil"
+	C "mirror/config"
+	T "mirror/tool"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"gopkg.in/yaml.v2"
 )
 
-var Config *Yaml
 var initial bool
-var protocal string
 
-type Replaced struct {
-	Old string `yaml:"old"`
-	New string `yaml:"new"`
-}
-
-type Yaml struct {
-	Host struct {
-		Self  string `yaml:"self"`
-		Proxy string `yaml:"proxy"`
-	}
-	ReplacedURLs []Replaced `yaml:"replaced_urls"`
-	EnableSSL    bool       `yaml:"enable_ssl"`
-	HandleCookie bool       `yaml:"handle_cookie"`
-}
-
-var data = `
-enable_ssl: True
-handle_cookie: True
-
-host:
-  self: mirror.loerfy.now.sh
-  proxy: s2-us2.startpage.com
-
-replaced_urls:
-  - old: www.startpage.com
-    new: s2-us2.startpage.com
-  - old: s2-us2.startpage.com
-    new: mirror.loerfy.now.sh
-`
-
-func loadConfig() {
-	Config = new(Yaml)
-	err := yaml.Unmarshal([]byte(data), Config)
-	checkErr(err)
-	if Config.EnableSSL {
-		protocal = "https://"
-	} else {
-		protocal = "http://"
-	}
-}
-
-func configStruct(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "text/html")
-	fmt.Fprintf(w, "<h3><a href='/bye/bye'>Leave</a>")
-}
-
-func checkErr(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-func hasGziped(coding string) bool {
-	return strings.HasPrefix(coding, "gz")
-}
-
-func isTextType(typeName string) bool {
-	return strings.HasPrefix(typeName, "text") ||
-		strings.HasPrefix(typeName, "appli")
-}
 func replaceText(text []byte) []byte {
-	for _, url := range Config.ReplacedURLs {
+	for _, url := range C.Config.ReplacedURLs {
 		text = bytes.ReplaceAll(text,
 			[]byte(url.Old), []byte(url.New))
 	}
@@ -90,8 +28,8 @@ func replaceRedirect(header http.Header) string {
 	domain := regexp.MustCompile(`://(.*?)/`)
 	location := header.Get("Location")
 	host := domain.FindStringSubmatch(location)[1]
-	if host != Config.Host.Self {
-		return strings.ReplaceAll(location, host, Config.Host.Self)
+	if host != C.Config.Host.Self {
+		return strings.ReplaceAll(location, host, C.Config.Host.Self)
 	}
 	return location
 }
@@ -106,7 +44,7 @@ func rewriteBody(resp *http.Response) (err error) {
 	if nil != resp {
 		defer resp.Body.Close()
 	}
-	checkErr(err)
+	T.CheckErr(err)
 
 	var content []byte
 	cType := resp.Header.Get("Content-Type")
@@ -114,15 +52,15 @@ func rewriteBody(resp *http.Response) (err error) {
 	StatusCode := resp.StatusCode
 	cookie := resp.Header.Get("Set-Cookie")
 
-	if hasGziped(cEncoding) {
+	if T.HasGziped(cEncoding) {
 		resp.Header.Del("Content-Encoding")
 		reader, _ := gzip.NewReader(resp.Body)
 		content, err = ioutil.ReadAll(reader)
 	} else {
 		content, err = ioutil.ReadAll(resp.Body)
 	}
-	checkErr(err)
-	if isTextType(cType) {
+	T.CheckErr(err)
+	if T.IsTextType(cType) {
 		content = replaceText(content)
 	}
 	if StatusCode == 302 || StatusCode == 301 {
@@ -141,17 +79,17 @@ func rewriteBody(resp *http.Response) (err error) {
 
 func Handler(w http.ResponseWriter, r *http.Request) {
 	if !initial {
-		loadConfig()
+		C.LoadConfig()
 		initial = true
 	}
-	rpURL, err := url.Parse(protocal + Config.Host.Proxy)
-	checkErr(err)
+	rpURL, err := url.Parse(C.Protocal + C.Config.Host.Proxy)
+	T.CheckErr(err)
 	proxy := httputil.NewSingleHostReverseProxy(rpURL)
 	proxy.ModifyResponse = rewriteBody
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) {
 		director(r)
-		r.Host = Config.Host.Proxy
+		r.Host = C.Config.Host.Proxy
 	}
 	proxy.ServeHTTP(w, r)
 }
