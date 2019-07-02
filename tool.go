@@ -13,6 +13,7 @@ func checkErr(err error) {
 		panic(err)
 	}
 }
+
 func hasGziped(coding string) bool {
 	return strings.HasPrefix(coding, "gz")
 }

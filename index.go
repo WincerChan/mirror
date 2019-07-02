@@ -14,6 +14,7 @@ import (
 	"strings"
 )
 
+
 var initial bool
 
 func replaceText(text []byte) []byte {
@@ -94,9 +95,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	proxy.ServeHTTP(w, r)
 }
 
-// func main() {
-// 	http.HandleFunc("/", Handler)
-// 	// http.ListenAndServe(":3000", nil)
-// 	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
-// 	log.Println("Listening in :3000")
-// }
+func main() {
+	http.HandleFunc("/", Handler)
+	// http.ListenAndServe(":3000", nil)
+	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
+	log.Println("Listening in :3000")
+}
