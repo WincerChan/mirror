@@ -1,9 +1,10 @@
-package mirror
+package main
 
 import (
 	"bytes"
 	"compress/gzip"
 	"io/ioutil"
+	"log"
 	C "mirror/config"
 	T "mirror/tool"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 )
-
 
 var initial bool
 
@@ -97,7 +97,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", Handler)
-	// http.ListenAndServe(":3000", nil)
 	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
 	log.Println("Listening in :3000")
 }
