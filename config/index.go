@@ -27,12 +27,10 @@ handle_cookie: True
 
 host:
   self: mirror.loerfy.now.sh
-  proxy: s2-us2.startpage.com
+  proxy: www.startpage.com
 
 replaced_urls:
   - old: www.startpage.com
-    new: s2-us2.startpage.com
-  - old: s2-us2.startpage.com
     new: mirror.loerfy.now.sh
 `
 var Config *Yaml
