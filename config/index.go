@@ -27,10 +27,10 @@ handle_cookie: True
 
 host:
   self: mirror.loerfy.now.sh
-  proxy: www.startpage.com
+  proxy: www.google.com
 
 replaced_urls:
-  - old: www.startpage.com
+  - old: www.google.com
     new: mirror.loerfy.now.sh
 `
 var Config *Yaml
