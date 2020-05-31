@@ -97,6 +97,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", Handler)
-	http.ListenAndServeTLS(":3000", "/home/wincer/.local/share/mkcert/rootCA.pem", "/home/wincer/.local/share/mkcert/rootCA-key.pem", nil)
 	log.Println("Listening in :3000")
+	http.ListenAndServe(":3000", nil)
 }
