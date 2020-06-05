@@ -3,6 +3,7 @@ package mirror
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/dsnet/compress/brotli"
 	"io/ioutil"
 	C "mirror/config"
 	T "mirror/tool"
@@ -25,12 +26,12 @@ func replaceText(text []byte) []byte {
 }
 
 func addNotification(text []byte) []byte {
-	if bytes.Contains(text, []byte("SIvCob")) {
+	if bytes.Contains(text, []byte("doctype")) {
 		var script = `<script>
 		let SIvCob = document.querySelector('#SIvCob');
 		if (SIvCob) SIvCob = document.querySelector('#SIvCob').innerHTML = '这是一个 Google 的镜像站，原理<a target=\'_blank\' href=\'https://blog.itswincer.com/posts/1352252a/\'>戳我</a>'
-		</script>`
-		text = append(text, []byte(script)...)
+		</script></body></html>`
+		text = bytes.ReplaceAll(text, []byte("</body></html>"), []byte(script))
 	}
 	return text
 }
@@ -58,14 +59,18 @@ func rewriteBody(resp *http.Response) (err error) {
 	T.CheckErr(err)
 
 	var content []byte
-	cType := resp.Header.Get("Content-Type")
-	cEncoding := resp.Header.Get("Content-Encoding")
+	cType := resp.Header.Get("content-type")
+	cEncoding := resp.Header.Get("content-encoding")
 	StatusCode := resp.StatusCode
-	cookie := resp.Header.Get("Set-Cookie")
+	cookie := resp.Header.Get("set-cookie")
 
 	if T.HasGziped(cEncoding) {
-		resp.Header.Del("Content-Encoding")
+		resp.Header.Del("content-encoding")
 		reader, _ := gzip.NewReader(resp.Body)
+		content, err = ioutil.ReadAll(reader)
+	} else if T.HasBrotli(cEncoding) {
+		resp.Header.Del("content-encoding")
+		reader, _ := brotli.NewReader(resp.Body, &brotli.ReaderConfig{})
 		content, err = ioutil.ReadAll(reader)
 	} else {
 		content, err = ioutil.ReadAll(resp.Body)
