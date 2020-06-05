@@ -24,6 +24,14 @@ func replaceText(text []byte) []byte {
 	return text
 }
 
+func addNotification(text []byte) []byte {
+	var script = `<script>
+		let SIvCob = document.querySelector('#SIvCob');
+		if (SIvCob) SIvCob = document.querySelector('#SIvCob').innerHTML = '这是一个 Google 的镜像站，原理<a href=\'https://blog.itswincer.com\'>戳我</a>'
+</script>`
+	return append(text, []byte(script)...)
+}
+
 func replaceRedirect(header http.Header) string {
 	domain := regexp.MustCompile(`://(.*?)/`)
 	location := header.Get("Location")
@@ -70,6 +78,7 @@ func rewriteBody(resp *http.Response) (err error) {
 		resp.Header.Set("Set-Cookie", removeCookie(cookie))
 	}
 
+	content = addNotification(content)
 	resp.Body = ioutil.NopCloser(bytes.NewReader(content))
 	resp.ContentLength = int64(len(content))
 	resp.Header.Set("Content-Length", strconv.Itoa(len(content)))
