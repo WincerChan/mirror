@@ -25,11 +25,14 @@ func replaceText(text []byte) []byte {
 }
 
 func addNotification(text []byte) []byte {
-	var script = `<script>
+	if bytes.Contains(text, []byte("SIvCob")) {
+		var script = `<script>
 		let SIvCob = document.querySelector('#SIvCob');
-		if (SIvCob) SIvCob = document.querySelector('#SIvCob').innerHTML = '这是一个 Google 的镜像站，原理<a href=\'https://blog.itswincer.com\'>戳我</a>'
-</script>`
-	return append(text, []byte(script)...)
+		if (SIvCob) SIvCob = document.querySelector('#SIvCob').innerHTML = '这是一个 Google 的镜像站，原理<a target=\'_blank\' href=\'https://blog.itswincer.com/posts/1352252a/\'>戳我</a>'
+		</script>`
+		text = append(text, []byte(script)...)
+	}
+	return text
 }
 
 func replaceRedirect(header http.Header) string {
