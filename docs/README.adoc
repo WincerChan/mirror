@@ -9,3 +9,5 @@ Golang 写的反向代理的工具，支持文本替换，重定向替换，Cook
 
 自行部署请切换至 master 分支，支持 Docker 部署。
 
+也可 fork 此仓库，自行在 now.sh 部署。
+
