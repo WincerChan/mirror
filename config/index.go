@@ -40,8 +40,8 @@ header_token_key: X-AUTH-TOKEN
 func loadConfig() {
 	config = new(Config)
 	err := yaml.Unmarshal([]byte(data), config)
-	T.CheckErr(err)
 	config.Token = os.Getenv("X_AUTH_TOKEN")
+	T.CheckErr(err)
 	if config.EnableSSL {
 		config.Protocol = "https://"
 	} else {

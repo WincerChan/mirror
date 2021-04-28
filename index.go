@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io/ioutil"
+	"log"
 	C "mirror/config"
 	"mirror/middleware"
 	T "mirror/tool"
@@ -98,7 +99,12 @@ func rewriteBody(resp *http.Response) (err error) {
 	return nil
 }
 
-func HandlerBase(w http.ResponseWriter, r *http.Request) {
+func Handle(w http.ResponseWriter, r *http.Request) {
+	if C.GetConfig().Token != r.Header.Get(C.GetConfig().HeaderTokenKey) {
+		// w.Write([]byte("invalid token"))
+		w.WriteHeader(444)
+		return
+	}
 	rpURL, err := url.Parse(C.GetConfig().Protocol + C.GetConfig().Host.Proxy)
 	T.CheckErr(err)
 	proxy := httputil.NewSingleHostReverseProxy(rpURL)
@@ -111,19 +117,8 @@ func HandlerBase(w http.ResponseWriter, r *http.Request) {
 	proxy.ServeHTTP(w, r)
 }
 
-func Handle(w http.ResponseWriter, r *http.Request) {
-	onceBody := func() {
-		e = &middleware.Engine{}
-		e.Use(middleware.RecoverMW())
-		e.Use(middleware.IdentityMW())
-		e.Use(middleware.CreateHandler(HandlerBase))
-	}
-	once.Do(onceBody)
-	e.Run()(w, r)
+func main() {
+	http.HandleFunc("/", Handle)
+	log.Println("Listening in :3000")
+	http.ListenAndServe(":3000", nil)
 }
-
-// func main() {
-// 	http.HandleFunc("/", Handle)
-// 	log.Println("Listening in :3000")
-// 	http.ListenAndServe(":3000", nil)
-// }

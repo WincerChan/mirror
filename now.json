@@ -7,11 +7,6 @@
             "use": "@now/go@canary"
         }
     ],
-    "build": {
-        "env": {
-            "GO111MODULE": "on"
-        }
-    },
     "routes": [
         {
             "src": "/(.*)",
