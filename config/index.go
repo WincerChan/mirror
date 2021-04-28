@@ -1,24 +1,25 @@
 package config
 
 import (
+	"os"
+	"sync"
+
 	T "mirror/tool"
 
 	"gopkg.in/yaml.v2"
 )
 
-type Replaced struct {
-	Old string `yaml:"old"`
-	New string `yaml:"new"`
-}
+var (
+	once   sync.Once
+	config *Config
+)
 
-type Yaml struct {
-	Host struct {
-		Self  string `yaml:"self"`
-		Proxy string `yaml:"proxy"`
+func GetConfig() *Config {
+	if config != nil {
+		return config
 	}
-	ReplacedURLs []Replaced `yaml:"replaced_urls"`
-	EnableSSL    bool       `yaml:"enable_ssl"`
-	HandleCookie bool       `yaml:"handle_cookie"`
+	once.Do(loadConfig)
+	return config
 }
 
 var data = `
@@ -26,23 +27,24 @@ enable_ssl: True
 handle_cookie: True
 
 host:
-  self: mirror.loerfy.now.sh
+  self: mirror-sigma.vercel.app
   proxy: www.google.com
 
 replaced_urls:
   - old: www.google.com
-    new: mirror.loerfy.now.sh
-`
-var Config *Yaml
-var Protocal string
+    new: mirror-sigma.vercel.app
 
-func LoadConfig() {
-	Config = new(Yaml)
-	err := yaml.Unmarshal([]byte(data), Config)
+header_token_key: X-AUTH-TOKEN
+`
+
+func loadConfig() {
+	config = new(Config)
+	err := yaml.Unmarshal([]byte(data), config)
 	T.CheckErr(err)
-	if Config.EnableSSL {
-		Protocal = "https://"
+	config.Token = os.Getenv("X_AUTH_TOKEN")
+	if config.EnableSSL {
+		config.Protocol = "https://"
 	} else {
-		Protocal = "http://"
+		config.Protocol = "http://"
 	}
 }
