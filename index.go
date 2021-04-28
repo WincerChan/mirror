@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	C "mirror/config"
+	"mirror/middleware"
 	T "mirror/tool"
 	"net/http"
 	"net/http/httputil"
@@ -15,10 +16,8 @@ import (
 	"strings"
 )
 
-var initial bool
-
 func replaceText(text []byte) []byte {
-	for _, url := range C.Config.ReplacedURLs {
+	for _, url := range C.GetConfig().ReplacedURLs {
 		text = bytes.ReplaceAll(text,
 			[]byte(url.Old), []byte(url.New))
 	}
@@ -29,8 +28,8 @@ func replaceRedirect(header http.Header) string {
 	domain := regexp.MustCompile(`://(.*?)/`)
 	location := header.Get("Location")
 	host := domain.FindStringSubmatch(location)[1]
-	if host != C.Config.Host.Self {
-		return strings.ReplaceAll(location, host, C.Config.Host.Self)
+	if host != C.GetConfig().Host.Self {
+		return strings.ReplaceAll(location, host, C.GetConfig().Host.Self)
 	}
 	return location
 }
@@ -79,24 +78,24 @@ func rewriteBody(resp *http.Response) (err error) {
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	if !initial {
-		C.LoadConfig()
-		initial = true
-	}
-	rpURL, err := url.Parse(C.Protocal + C.Config.Host.Proxy)
+	rpURL, err := url.Parse(C.GetConfig().Protocol + C.GetConfig().Host.Proxy)
 	T.CheckErr(err)
 	proxy := httputil.NewSingleHostReverseProxy(rpURL)
 	proxy.ModifyResponse = rewriteBody
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) {
 		director(r)
-		r.Host = C.Config.Host.Proxy
+		r.Host = C.GetConfig().Host.Proxy
 	}
 	proxy.ServeHTTP(w, r)
 }
 
 func main() {
-	http.HandleFunc("/", Handler)
+	e := &middleware.Engine{}
+	e.Use(middleware.RecoverMW())
+	e.Use(middleware.IdentityMW())
+	e.Use(middleware.CreateHandler(Handler))
+	http.HandleFunc("/", e.Run())
 	log.Println("Listening in :3000")
 	http.ListenAndServe(":3000", nil)
 }
