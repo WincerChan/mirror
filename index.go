@@ -97,12 +97,11 @@ func rewriteBody(resp *http.Response) (err error) {
 
 	return nil
 }
+func init() {
+	middleware.GetEngine(middleware.RecoverMW(), middleware.IdentityMW(), middleware.CreateHandler(handler))
+}
 
-func Handle(w http.ResponseWriter, r *http.Request) {
-	if C.GetConfig().Token != r.Header.Get(C.GetConfig().HeaderTokenKey) {
-		w.WriteHeader(444)
-		return
-	}
+func handler(w http.ResponseWriter, r *http.Request) {
 	rpURL, err := url.Parse(C.GetConfig().Protocol + C.GetConfig().Host.Proxy)
 	T.CheckErr(err)
 	proxy := httputil.NewSingleHostReverseProxy(rpURL)
@@ -113,6 +112,10 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		r.Host = C.GetConfig().Host.Proxy
 	}
 	proxy.ServeHTTP(w, r)
+}
+
+func Handler(w http.ResponseWriter, r *http.Request) {
+	middleware.GetEngine().Run()(w, r)
 }
 
 // func main() {

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"sync"
 )
 
 type Engine struct {
@@ -45,4 +46,20 @@ func (e *Engine) Status(code int) {
 func (e *Engine) AbortWithStatus(code int) {
 	e.Status(code)
 	e.Abort()
+}
+
+var (
+	once sync.Once
+	eng  *Engine
+)
+
+func GetEngine(middleware ...HandlerFunc) *Engine {
+	if eng != nil {
+		return eng
+	}
+	once.Do(func() {
+		eng = &Engine{}
+		eng.Use(middleware...)
+	})
+	return eng
 }
