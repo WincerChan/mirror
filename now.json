@@ -4,11 +4,6 @@
   "regions": [
         "hkg1"
   ],
-  "build": {
-    "env": {
-      "GO111MODULE": "on"
-    }
-  },
   "functions": {
     "api/index.go": {
       "maxDuration": 5
