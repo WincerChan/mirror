@@ -2,7 +2,7 @@
   "version": 2,
   "name": "mirror",
   "regions": [
-        "bru1"
+        "sin1"
   ],
   "functions": {
     "api/index.go": {
