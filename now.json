@@ -1,6 +1,11 @@
 {
   "version": 2,
   "name": "mirror",
+  "regions": [
+        "hnd1",
+        "icn1",
+        "sin1"
+  ],
   "build": {
     "env": {
       "GO111MODULE": "on"
