@@ -27,12 +27,12 @@ enable_ssl: True
 handle_cookie: True
 
 host:
-  self: mirror-zxmrlc.vercel.app
+  self: mirror-sigma.vercel.app
   proxy: www.google.com
 
 replaced_urls:
   - old: www.google.com
-    new: mirror-zxmrlc.vercel.app
+    new: mirror-sigma.vercel.app
 
 header_token_key: X-AUTH-TOKEN
 `
