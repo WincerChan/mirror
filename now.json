@@ -1,15 +1,20 @@
 {
-    "version": 2,
-    "name": "mirror",
-    "build": {
-        "env": {
-            "GO111MODULE": "on"
-        }
-    },
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "index.go"
-        }
-    ]
+  "version": 2,
+  "name": "mirror",
+  "build": {
+    "env": {
+      "GO111MODULE": "on"
+    }
+  },
+  "functions": {
+    "api/index.go": {
+      "maxDuration": 5
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.go"
+    }
+  ]
 }
