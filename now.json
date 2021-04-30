@@ -1,12 +1,11 @@
 {
     "version": 2,
     "name": "mirror",
-    "builds": [
-        {
-            "src": "*.go",
-            "use": "@now/go@canary"
+    "build": {
+        "env": {
+            "GO111MODULE": "on"
         }
-    ],
+    },
     "routes": [
         {
             "src": "/(.*)",
