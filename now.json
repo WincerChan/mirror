@@ -2,7 +2,7 @@
   "version": 2,
   "name": "mirror",
   "regions": [
-        "hkg1"
+        "bru1"
   ],
   "functions": {
     "api/index.go": {
