@@ -11,3 +11,6 @@ Golang 写的反向代理的工具，支持文本替换，重定向替换，Cook
 
 也可 fork 此仓库，自行在 now.sh 部署。
 
+=====
+新增功能：Token 认证，在环境变量设置 X_AUTH_TOKEN，即只允许携带 Token 的请求
+
